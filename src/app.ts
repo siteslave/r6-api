@@ -73,14 +73,14 @@ let db = Knex({
   client: 'mysql',
   connection: connection,
   pool: {
-      min: 0,
-      max: 7,
-      afterCreate: (conn, done) => {
-        conn.query('SET NAMES utf8', (err) => {
-          done(err, conn);
-        });
-      }
-    },
+    min: 0,
+    max: 7,
+    afterCreate: (conn, done) => {
+      conn.query('SET NAMES utf8', (err) => {
+        done(err, conn);
+      });
+    }
+  },
 });
 
 app.use((req, res, next) => {
