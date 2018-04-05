@@ -2,19 +2,20 @@ require('dotenv').config();
 
 import { MySqlConnectionConfig } from 'knex';
 import Knex = require('knex');
-
 import * as express from 'express';
 import * as path from 'path';
 import * as favicon from 'serve-favicon';
 import * as logger from 'morgan';
 import * as cookieParser from 'cookie-parser';
 import * as bodyParser from 'body-parser';
-import index from './routes/index';
-
 import * as ejs from 'ejs';
-
 import * as cors from 'cors';
 
+import { Jwt } from './models/jwt';
+import index from './routes/index';
+import api from './routes/api';
+
+const jwt = new Jwt();
 const app: express.Express = express();
 
 //view engine setup
@@ -32,6 +33,31 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.use(cors());
+
+let checkAuth = (req, res, next) => {
+  let token: string = null;
+
+  if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  } else {
+    token = req.body.token;
+  }
+
+  jwt.verify(token)
+    .then((decoded: any) => {
+      req.decoded = decoded;
+      console.log(decoded);
+      next();
+    }, err => {
+      return res.send({
+        ok: false,
+        error: 'No token provided.',
+        code: 403
+      });
+    });
+}
 
 let connection: MySqlConnectionConfig = {
   host: process.env.DB_HOST,
@@ -62,6 +88,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api', checkAuth, api);
 app.use('/', index);
 
 //catch 404 and forward to error handler
